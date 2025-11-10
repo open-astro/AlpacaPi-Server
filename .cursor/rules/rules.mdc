@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+---
+
+## Indentation and Formatting
+- TABS for indentation (not spaces) - CRITICAL
+- Tab width: 8 spaces equivalent
+- Opening braces on same line
+- No column limit (allow long lines)
+- Trailing comments aligned
+- Spaces around operators in conditions
+- No spaces in parentheses
+- Pointer alignment: Left (*ptr, not ptr*)
+
+## Comments
+- Block comments use `//*****************************************************************************` for major sections
+- Inline comments use `//*` (with asterisk, not just `//`)
+- Function descriptions use block comment style above function
+- TODO comments format: `//*	Date	<TODO> description`
+
+## Include Guards
+- Format: `#ifndef _FILENAME_H_` / `#define	_FILENAME_H_` (tab after #define)
+- Closing: `#endif // _FILENAME_H_`
+
+## Includes
+- Use tabs after `#include`: `#include	<header.h>`
+- Protect includes with `#ifndef` checks: `#ifndef _HEADER_H` ... `#endif`
+
+## Variable Declarations
+- Declare variables at start of function
+- Type and name separated by tabs: `int		iii;`
+- Multiple variables aligned with tabs
+
+## Function Declarations
+- Return type, then function name
+- Parameters aligned with tabs
+- Opening brace on same line as function signature
+
+## Return Statements
+- Use parentheses: `return(value);` (not `return value;`)
+
+## Assignment Alignment
+- Use tabs for alignment: `variable	=	value;`
+- Multiple assignments aligned with tabs
+
+## Naming Conventions
+- Class members: `c` prefix (camelCase): `cWindowName`, `cOnLine`
+- Constants: `k` prefix: `kMaxControllers`, `kDefaultUpdateDelta`
+- Types: `TYPE_` prefix: `TYPE_CameraProperties`, `TYPE_WIDGET`
+- Global variables: `g` prefix: `gVerbose`, `gObseratorySettings`
+- Functions: PascalCase or camelCase: `FormatTimeString()`, `IsTrueFalse()`

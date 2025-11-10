@@ -34,17 +34,72 @@ If you haven't already downloaded the git repository,
     cd AlpacaPi
 
 
-There is a script setup.sh
-run that script
-	>./setup.sh
+## Setup Script
 
-	It will check for various requirements and prompt you to download and install certain libraries.
+There is a single comprehensive setup script that handles everything:
 
+### Installation
 
-	install_rules.sh
-		this installs the USB rules files in the appropriate directories.
-		It needs to be run as root
-	>sudo ./install_rules.sh
+	./setup_complete.sh
+
+This script will:
+- Check system requirements and install build tools if needed
+- Install required system libraries (libusb, libudev, libi2c, libjpeg, etc.)
+- Install FITS library (cfitsio)
+- Check for OpenCV and provide installation guidance
+- Install USB device rules (for camera/focuser/filter wheel access)
+- Install vendor SDKs (optional, based on what you have)
+- Download extra data for SkyTravel (optional)
+- Verify build environment (platform, OpenCV, SQL detection)
+- Build AlpacaPi (optional)
+
+This single script replaces all the old setup scripts:
+- `setup.sh` (archived)
+- `install_dev_env.sh` (archived)
+- `install_everything.sh` (archived)
+- `install_fits.sh` (archived)
+- `install_rules.sh` (archived)
+- `install_libraries.sh` (archived)
+- `build_all.sh` (archived)
+
+All functionality is now integrated into `setup_complete.sh` with interactive prompts.
+
+### Important Notes
+
+- **Interactive by default**: The script will prompt you before each major installation step
+- **Safe to run multiple times**: The script checks what's already installed and skips if present
+- **Requires sudo**: Some steps require administrator privileges (you'll be prompted)
+- **Platform detection**: Automatically detects your platform (x64, ARM32, ARM64)
+- **OpenCV optional**: OpenCV is only needed for camera/focuser/dome clients, not the basic server
+- **OpenCV build time**: Building OpenCV from source takes 4+ hours on Raspberry Pi, 5+ hours on Jetson Nano
+- **Build verification**: The script verifies your build environment before building to catch issues early
+- **Error handling**: Script exits on error (`set -e`) - if something fails, the script stops immediately
+- **Log files**: Creates log files (`opencvinstall-log.txt`, `AlpacaPi_buildlog.txt`) for troubleshooting
+- **Reboot may be required**: After installing USB rules, you may need to reboot for them to take effect
+- **Cancellable**: You can cancel at any prompt (Ctrl+C) - the script won't leave your system in a broken state
+
+### Uninstallation
+
+To remove AlpacaPi components from your system:
+
+	./setup_complete.sh --uninstall
+
+Or:
+
+	./setup_complete.sh -u
+
+The uninstaller will:
+- Remove vendor SDK libraries from `/usr/lib`
+- Remove USB device rules from `/lib/udev/rules.d/`
+- Remove built binaries (alpacapi, client, camera, etc.)
+- Remove build artifacts (object files, logs)
+- Optionally remove FITS library (if installed from source)
+- Optionally remove OpenCV (if installed via package manager or from source)
+- Optionally remove downloaded SDK folders (QHY, PlayerOne, QSI, WiringPi)
+- Optionally remove downloaded data folders (OpenNGC, d3-celestial)
+
+**Note**: The uninstaller will stop any running AlpacaPi processes before removing binaries.
+Repository SDK folders (ZWO_ASI_SDK, AtikCamerasSDK, ZWO_EFW_SDK, etc.) are NOT removed.
 
 
 ===================================================
@@ -64,49 +119,39 @@ These libraries are required for the following devices:
 	ZWO ASI cameras
 	ZWO EFW Filter Wheel
 
-External libraries are NOT required for
+External libraries are NOT required for:
 
-	MoonLite Focusers
-	LX200 Telescope mount (not finished)
-	SkyWatcher Telescope mount (not finished)
-	Calibration control of Flat panel
+	MoonLite Focusers (built-in support, no SDK needed - optional, enabled by default)
+	LX200 Telescope mount (supported - tracking on/off not implemented, optional, disabled by default)
+	SkyWatcher Telescope mount (not finished - not implemented, optional, disabled by default)
+	Calibration control (Flat panel control - optional, enabled by default)
 
-
-There is a script for installing many of these libraries
-
-	./install_libraries.sh
-It will bring up this screen
-The "Present" indicator means that the folder is there and can be installed.
-It does NOT mean it is installed.  The script will ask you for each library
-that is present if you want to install it or not.
-As with everything, this script still has more work needed.
-For example, ToupTek script is only finished for 32-bit Arm as of 3/19/2021
+**Note**: The setup script (`setup_complete.sh`) will prompt you to select which drivers to include in your build. 
+By default, MoonLite focusers and calibration control are enabled, but you can disable them if you don't need them.
+LX200 telescope mount support is functional (slew, sync, move axis, abort) but tracking on/off is not yet implemented.
+SkyWatcher telescope mount is disabled by default since it is not finished.
 
 
-		**********************************************
-		*        AlpacaPi library installation       *
-		*                                            *
-		* It is OK to run this script multiple times *
-		*                                            *
-		* Not all of these libraries are required    *
-		* For example, if you don't use QHY cameras  *
-		* then the QHY library is not needed         *
-		**********************************************
+Vendor SDK installation is handled automatically by `setup_complete.sh`. 
 
-			ASI_lib                 	Present
-			AtikCamerasSDK          	Present
-			EFW_linux_mac_SDK       	Present
-			FLIR-SDK                	Present
-			QHY                     	Present
-			toupcamsdk              	Present
-		*********************************************
-		Running on intel x64 : true
-		Running on Arm 32 bit: false
-		Running on Arm 64 bit: false
-		Installing libraries into /usr/lib
-		***************************************************************
-		AtikCamerasSDK SDK folder found
-		Would you like to install AtikCamerasSDK support [y/n]?
+When you run `setup_complete.sh`, it will:
+- Detect which vendor SDKs you have downloaded
+- Prompt you to install each one
+- Install the appropriate libraries for your platform (x64, ARM32, ARM64)
+- Install USB rules for each vendor
+
+**Note**: You need to download vendor SDKs separately (they're not included in AlpacaPi). 
+Once downloaded and extracted to the AlpacaPi directory, `setup_complete.sh` will detect 
+and offer to install them.
+
+Supported vendors:
+- ZWO (ASI cameras, EFW filter wheels, EAF focusers)
+- ATIK cameras
+- QHY cameras
+- QSI cameras
+- PlayerOne cameras
+- ToupTek cameras
+- FLIR cameras
 
 
 
@@ -141,6 +186,8 @@ Alpaca/ASCOM plus a couple extras I created for my own use.
 
 AlpacaPi has been tested on the following platforms
 
+	Ubuntu 24.04 LTS x86_64
+	
 	Ubuntu 16.04 LTS x86_64
 
 	Ubuntu 20.04 LTS x86_64
@@ -207,6 +254,14 @@ Mar  4,	2023	<MLS> CONFORMU-camera/simulator -> PASSED!!!!!!!!!!!!!!!!!!!!!
 Jun  9,	2023	<MLS> CONFORM-covercalibrarion-Alnitak -> PASSED!!!!!!!!!!!!!!!!!!!!!
 
 
+
+===================================================
+
+## Contributing:
+
+We welcome contributions to AlpacaPi! If you'd like to contribute, please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on code formatting, pull requests, and development practices.
+
+The most important rule: **Use TABS (not spaces) for indentation** in all C/C++ source files. See [CONTRIBUTING.md](CONTRIBUTING.md) for complete formatting guidelines.
 
 ===================================================
 

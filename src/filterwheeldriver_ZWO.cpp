@@ -20,7 +20,7 @@
 //*****************************************************************************
 //*
 //*	Usage notes:	Remember to install the rules and reboot,
-//*					see EFW_linux_mac_SDK/lib/README.txt
+//*					see ZWO_EFW_SDK/lib/README.txt
 //*
 //*****************************************************************************
 //*	Edit History

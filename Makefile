@@ -95,9 +95,12 @@ GCC_DIR				=	/usr/bin/
 #INCLUDE_BASE		=	/usr/include/
 #LIB_BASE			=	/usr/lib/
 
-#	/usr/local/lib/pkgconfig/opencv.pc
+#	OpenCV detection via pkg-config (works with both package manager and source-compiled)
+#	pkg-config will automatically provide correct include and library paths
 OPENCV_COMPILE		=	$(shell pkg-config --cflags $(OPENCV_VERSION))
 OPENCV_LINK			=	$(shell pkg-config --libs $(OPENCV_VERSION))
+#*	Note: pkg-config already includes library paths, but we add /usr/local/lib/
+#*	for source-compiled OpenCV installations (optional, won't hurt package manager installs)
 OPENCV_LIB			=	/usr/local/lib/
 OPENCV_LINK			+=	-L$(OPENCV_LIB)
 
@@ -123,9 +126,9 @@ OBJECT_DIR			=	./Objectfiles/
 GD_DIR				=	../gd/
 ############################################
 # ZWO libraires
-ASI_LIB_DIR			=	./ASI_lib
-ASI_INCLUDE_DIR		=	./ASI_lib/include
-EFW_LIB_DIR			=	./EFW_linux_mac_SDK
+ASI_LIB_DIR		=	./ZWO_ASI_SDK
+ASI_INCLUDE_DIR	=	./ZWO_ASI_SDK/include
+EFW_LIB_DIR		=	./ZWO_EFW_SDK
 ZWO_EAF_DIR			=	./ZWO_EAF_SDK/include
 ZWO_EAF_LIB_DIR		=	./ZWO_EAF_SDK/lib/$(PLATFORM)/
 

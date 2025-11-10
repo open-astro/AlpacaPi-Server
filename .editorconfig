@@ -1,0 +1,65 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C/C++ source files - USE TABS (not spaces)
+[*.{c,cpp,h,hpp}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+# Makefiles - USE TABS (required)
+[Makefile]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+[*.{mk,make}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+# Shell scripts
+[*.{sh,bash}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+# Configuration files
+[*.{txt,cfg,conf}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+# Markdown files
+[*.md]
+indent_style = space
+indent_size = 2
+tab_width = 2
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+tab_width = 2
+
+# XML files
+[*.xml]
+indent_style = space
+indent_size = 2
+tab_width = 2
+
+# HTML files
+[*.html]
+indent_style = space
+indent_size = 2
+tab_width = 2
+

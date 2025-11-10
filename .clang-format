@@ -1,0 +1,87 @@
+# AlpacaPi Clang-Format Configuration
+# Based on existing codebase formatting style
+# IMPORTANT: Uses TABS (not spaces) for indentation
+#
+# NOTE: clang-format may use spaces for alignment even when indentation
+#       uses tabs. This is a limitation of the tool. The .editorconfig
+#       file ensures tabs are used for indentation, which is the critical
+#       requirement. Manual adjustment may be needed for perfect alignment.
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation - USE TABS
+UseTab: Always
+TabWidth: 8
+IndentWidth: 8
+
+# Brace style - opening brace on same line
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# Column limit - allow longer lines (codebase uses long lines)
+ColumnLimit: 0
+
+# Alignment
+# Note: clang-format uses spaces for alignment, but indentation uses tabs
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: false
+AlignTrailingComments: true
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Line breaks
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+
+# Includes
+SortIncludes: false
+IncludeBlocks: Preserve
+
+# Other formatting
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: false
+CompactNamespaces: false
+ConstructorInitializerIndentWidth: 8
+ContinuationIndentWidth: 8
+Cpp11BracedListStyle: false
+FixNamespaceComments: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+NamespaceIndentation: None
+PointerAlignment: Left
+ReflowComments: false
+SortUsingDeclarations: false
+Standard: Auto
+
+# Disable formatting that conflicts with tab-based style
+DisableFormat: false
+

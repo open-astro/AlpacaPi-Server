@@ -30,4 +30,39 @@
 *.exe
 *.out
 *.app
+
+# AlpacaPi built binaries (Linux executables without extensions)
+alpacapi
+client
+camera
+domectrl
+focuser
+rorpi
+switch
+sky
+cameracv4
+domectrlcv4
+focusercv4
+picv4
+switchcv4
+skycv4
+calib
+calibcv4
+topens
+pmc8
+skytravel
+alpaca-spectro
+
+# Build logs and temporary files
+*.log
+AlpacaPi_buildlog.txt
+opencvinstall-log.txt
+.Makefile.custom
+auxinfoconfig.txt.template
+
+# Request logs
 requestlog-*
+
+# Downloaded data folders (optional, downloaded by setup script)
+d3-celestial/
+OpenNGC/
