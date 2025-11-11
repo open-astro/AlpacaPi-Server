@@ -14,6 +14,7 @@ set -e		#*	exit on error
 #	Configuration
 ###############################################################################
 AUTO_INSTALL=false		#*	set to true to skip prompts and install everything automatically
+UNINSTALL_MODE=false	#*	set to true when -u flag is used
 
 ###############################################################################
 #	Colors for output
@@ -461,6 +462,202 @@ InstallOpenCV()
 		PrintError "OpenCV installation via package manager failed"
 			return 1
 		fi
+}
+
+###############################################################################
+#	Uninstall AlpacaPi
+###############################################################################
+UninstallAlpacaPi()
+{
+	PrintSection "Uninstalling AlpacaPi"
+	
+	#*	Stop any running AlpacaPi processes (always do this)
+	PrintStep "Stopping running AlpacaPi processes..."
+	if pgrep -f "alpacapi" >/dev/null 2>&1
+	then
+		PrintWarning "Found running AlpacaPi processes, stopping them..."
+		sudo pkill -f "alpacapi" || true
+		sleep 2
+		if pgrep -f "alpacapi" >/dev/null 2>&1
+		then
+			PrintWarning "Some processes still running, force killing..."
+			sudo pkill -9 -f "alpacapi" || true
+		fi
+		PrintSuccess "AlpacaPi processes stopped"
+	else
+		PrintSuccess "No running AlpacaPi processes found"
+	fi
+	
+	echo ""
+	echo "What would you like to remove?"
+	echo ""
+	
+	#*	Option 1: Remove alpacapi application binary
+	REMOVE_APP=false
+	if [ -f "alpacapi" ]
+	then
+		if AskYesNo "Remove alpacapi application binary?" "y"
+		then
+			REMOVE_APP=true
+		fi
+	else
+		PrintWarning "alpacapi binary not found"
+	fi
+	
+	#*	Option 2: Remove USB driver rules
+	REMOVE_DRIVERS=false
+	RULES_FOUND=0
+	
+	#*	List of rules files that might have been installed
+	RULES_FILES=(
+		"/lib/udev/rules.d/asi.rules"
+		"/etc/udev/rules.d/asi.rules"
+		"/lib/udev/rules.d/efw.rules"
+		"/etc/udev/rules.d/efw.rules"
+		"/lib/udev/rules.d/eaf.rules"
+		"/etc/udev/rules.d/eaf.rules"
+		"/lib/udev/rules.d/99-atik.rules"
+		"/etc/udev/rules.d/99-atik.rules"
+		"/lib/udev/rules.d/99-toupcam.rules"
+		"/etc/udev/rules.d/99-toupcam.rules"
+		"/lib/udev/rules.d/40-flir-spinnaker.rules"
+		"/etc/udev/rules.d/40-flir-spinnaker.rules"
+		"/lib/udev/rules.d/85-qhyccd.rules"
+		"/etc/udev/rules.d/85-qhyccd.rules"
+	)
+	
+	#*	Check which rules exist
+	for RULE_FILE in "${RULES_FILES[@]}"
+	do
+		if [ -f "$RULE_FILE" ]
+		then
+			RULES_FOUND=$((RULES_FOUND + 1))
+		fi
+	done
+	
+	if [ $RULES_FOUND -gt 0 ]
+	then
+		echo ""
+		echo "Found $RULES_FOUND USB driver rule file(s):"
+		for RULE_FILE in "${RULES_FILES[@]}"
+		do
+			if [ -f "$RULE_FILE" ]
+			then
+				echo "	- $RULE_FILE"
+			fi
+		done
+		echo ""
+		if AskYesNo "Remove USB driver rules? (Required for USB device access)" "y"
+		then
+			REMOVE_DRIVERS=true
+		fi
+	else
+		PrintWarning "No USB driver rules found"
+	fi
+	
+	#*	Option 3: Remove build artifacts
+	REMOVE_BUILD_ARTIFACTS=false
+	BUILD_ARTIFACTS_FOUND=false
+	
+	if [ -d "Objectfiles" ] || [ -f "AlpacaPi_buildlog.txt" ] || [ -f ".Makefile.custom" ] || [ -f ".selective_build.log" ]
+	then
+		BUILD_ARTIFACTS_FOUND=true
+	fi
+	
+	if [ "$BUILD_ARTIFACTS_FOUND" = true ]
+	then
+		echo ""
+		if AskYesNo "Remove build artifacts? (Objectfiles, build logs, etc.)" "y"
+		then
+			REMOVE_BUILD_ARTIFACTS=true
+		fi
+	fi
+	
+	#*	Perform removals based on user choices
+	echo ""
+	PrintSection "Removing Selected Components"
+	
+	#*	Remove application binary
+	if [ "$REMOVE_APP" = true ]
+	then
+		PrintStep "Removing alpacapi application binary..."
+		if [ -f "alpacapi" ]
+		then
+			rm -f "alpacapi"
+			PrintSuccess "Removed alpacapi binary"
+		fi
+	fi
+	
+	#*	Remove USB driver rules
+	if [ "$REMOVE_DRIVERS" = true ]
+	then
+		PrintStep "Removing USB driver rules..."
+		RULES_REMOVED=0
+		
+		for RULE_FILE in "${RULES_FILES[@]}"
+		do
+			if [ -f "$RULE_FILE" ]
+			then
+				sudo rm -f "$RULE_FILE"
+				RULES_REMOVED=$((RULES_REMOVED + 1))
+				PrintSuccess "Removed $RULE_FILE"
+			fi
+		done
+		
+		if [ $RULES_REMOVED -gt 0 ]
+		then
+			PrintSuccess "Removed $RULES_REMOVED USB rule file(s)"
+			PrintWarning "You may need to reboot for USB rule changes to take effect"
+		fi
+	fi
+	
+	#*	Remove build artifacts
+	if [ "$REMOVE_BUILD_ARTIFACTS" = true ]
+	then
+		PrintStep "Removing build artifacts..."
+		
+		if [ -d "Objectfiles" ]
+		then
+			rm -rf Objectfiles
+			PrintSuccess "Removed Objectfiles directory"
+		fi
+		
+		if [ -f "AlpacaPi_buildlog.txt" ]
+		then
+			rm -f AlpacaPi_buildlog.txt
+			PrintSuccess "Removed build log"
+		fi
+		
+		if [ -f ".Makefile.custom" ]
+		then
+			rm -f .Makefile.custom
+			PrintSuccess "Removed temporary Makefile"
+		fi
+		
+		if [ -f ".selective_build.log" ]
+		then
+			rm -f .selective_build.log
+			PrintSuccess "Removed build log"
+		fi
+	fi
+	
+	#*	Summary
+	echo ""
+	PrintSection "Uninstallation Summary"
+	
+	if [ "$REMOVE_APP" = true ] || [ "$REMOVE_DRIVERS" = true ] || [ "$REMOVE_BUILD_ARTIFACTS" = true ]
+	then
+		PrintSuccess "Selected components have been removed"
+	else
+		PrintWarning "No components were selected for removal"
+	fi
+	
+	#*	Note about SDK folders and system libraries
+	echo ""
+	PrintWarning "Repository SDK folders (ZWO_ASI_SDK, AtikCamerasSDK, ZWO_EFW_SDK, etc.) were NOT removed"
+	PrintWarning "System libraries (libusb, libudev, OpenCV, etc.) were NOT removed"
+	
+	PrintSection "Uninstallation Complete!"
 }
 
 ###############################################################################
@@ -1222,11 +1419,54 @@ EOF
 }
 
 ###############################################################################
+#	Parse Command Line Arguments
+###############################################################################
+ParseArguments()
+{
+	while [ $# -gt 0 ]
+	do
+		case "$1" in
+			-u|--uninstall)
+				UNINSTALL_MODE=true
+				shift
+				;;
+			-h|--help)
+				echo "AlpacaPi Setup Script"
+				echo ""
+				echo "Usage: $0 [OPTIONS]"
+				echo ""
+				echo "Options:"
+				echo "  -u, --uninstall    Uninstall AlpacaPi (remove binaries and USB rules)"
+				echo "  -h, --help         Show this help message"
+				echo ""
+				exit 0
+				;;
+			*)
+				PrintError "Unknown option: $1"
+				echo "Use -h or --help for usage information"
+				exit 1
+				;;
+		esac
+	done
+}
+
+###############################################################################
 #	Main Function
 ###############################################################################
 main()
 {
+	#*	Parse command line arguments
+	ParseArguments "$@"
+	
+	#*	If uninstall mode, run uninstall and exit
+	if [ "$UNINSTALL_MODE" = true ]
+	then
 		clear
+		UninstallAlpacaPi
+		exit 0
+	fi
+	
+	clear
 	PrintSection "AlpacaPi Setup"
 	echo ""
 	echo "This script will verify system requirements and help you build alpacapi."

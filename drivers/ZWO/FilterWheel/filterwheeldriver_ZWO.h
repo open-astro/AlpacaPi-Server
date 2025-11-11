@@ -39,6 +39,7 @@ class FilterwheelZWO: public FilterwheelDriver
 		bool						cForceReadPosition;
 		int							cActualPosReadCout;
 		EFW_INFO					cFilterwheelInfo;
+		int							cFilterWheelID;
 
 
 };
