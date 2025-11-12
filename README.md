@@ -6,7 +6,7 @@ Alpaca is an open, device-agnostic protocol developed by the ASCOM Initiative th
 
 With AlpacaPi Server running, your devices can be managed through popular astrophotography software including N.I.N.A. (Nighttime Imaging ’N’ Astronomy), Sequence Generator Pro (SGPro), SkySafari 7, Voyager, and many other applications that support the Alpaca standard without installing ASCOM or hardware-specific drivers on your computer.
 
-Once installed and running you can access the web sever and make changes to your gear is where acceptable. The ports to access the portal http://ip:6800/ based on the IP of your RPi
+Once installed and running you can access the web sever and make changes to your gear where acceptable. The ports to access the portal http://ip:6800/ based on the IP of your RPi
 
 <img src="./logos/alpcapi_web.png" alt="Alpaca Web Portal" width="600">
 
