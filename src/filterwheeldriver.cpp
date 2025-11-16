@@ -169,13 +169,13 @@ int				slen;
 //	CONSOLE_DEBUG(__FUNCTION__);
 
 	//*	see if there is a file describing the filters currently installed
-	filePointer	=	fopen("filters.txt", "r");
+	filePointer	=	fopen("libs/filters.txt", "r");
 	if (filePointer != NULL)
 	{
-//		CONSOLE_DEBUG("filters.txt is present");
+//		CONSOLE_DEBUG("libs/filters.txt is present");
 
 		LogEvent(	"filterwheel",
-					"filters.txt is present",
+					"libs/filters.txt is present",
 					NULL,
 					kASCOM_Err_Success,
 					"");

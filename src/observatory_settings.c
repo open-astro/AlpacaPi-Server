@@ -176,7 +176,7 @@ char	linuxErrStr[64];
 
 //	CONSOLE_DEBUG(__FUNCTION__);
 
-	filePointer	=	fopen("observatorysettings_template.txt", "w");
+	filePointer	=	fopen("libs/observatorysettings_template.txt", "w");
 	if (filePointer != NULL)
 	{
 		fprintf(filePointer, "%s",	separaterLine);

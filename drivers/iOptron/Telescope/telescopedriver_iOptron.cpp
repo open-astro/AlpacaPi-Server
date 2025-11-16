@@ -69,7 +69,9 @@
 #include	"telescopedriver_comm.h"
 #include	"telescopedriver_iOptron.h"
 #include	"readconfigfile.h"
+#include	"usbmanager.h"
 #include	<sys/time.h>
+#include	<unistd.h>
 
 //#define	_DEBUG_IOPTRON_
 
@@ -90,27 +92,78 @@ static double	iOptron_ParseDegMinSec(char *dataBuffer);
 static double	iOptron_ParseRA(char *dataBuffer);
 
 //**************************************************************************************
+//*	Try to find an available USB serial device
+//*	Returns the first available device path, or NULL if none found
+//*	Note: This is a best-guess - if multiple USB devices exist, user should configure
+//*	the correct one via setup page or config file
+//**************************************************************************************
+static const char *FindAvailableUSBDevice(void)
+{
+int				usbCount;
+int				iii;
+int				accessRC;
+const char		*commonPaths[]	=	{"/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyACM0", "/dev/ttyACM1", NULL};
+static char		foundPath[64];
+
+	//*	Try common USB device paths in order
+	//*	Returns first one that exists and is accessible
+	//*	If multiple devices exist, user should configure the correct one
+	for (iii = 0; commonPaths[iii] != NULL; iii++)
+	{
+		accessRC	=	access(commonPaths[iii], F_OK | R_OK | W_OK);
+		if (accessRC == 0)
+		{
+			strcpy(foundPath, commonPaths[iii]);
+			CONSOLE_DEBUG_W_STR("Auto-detected USB device", foundPath);
+			CONSOLE_DEBUG("Note: If this is not the mount, configure correct device via setup page");
+			return(foundPath);
+		}
+	}
+
+	//*	No USB devices found in common paths
+	CONSOLE_DEBUG("No USB device found via auto-detection");
+	return(NULL);
+}
+
+//**************************************************************************************
 void	CreateTelescopeObjects_iOptron(void)
 {
+const char		*autoDetectedPath;
+const char		*defaultSerialPath;
+
 	CONSOLE_DEBUG(__FUNCTION__);
-	//*	Create both USB/Serial and Ethernet instances
-	//*	The connection code will handle failures gracefully
-	//*	Only the instance that successfully connects will be active
+	
+	//*	Try to auto-detect USB serial device
+	autoDetectedPath	=	FindAvailableUSBDevice();
+	if (autoDetectedPath != NULL)
+	{
+		defaultSerialPath	=	autoDetectedPath;
+	}
+	else
+	{
+		//*	Fallback to common default - user can configure via setup page or config file
+		defaultSerialPath	=	"/dev/ttyUSB0";
+		CONSOLE_DEBUG("Using default USB path - configure via setup page or config file");
+	}
+
+	//*	Create USB/Serial instance
+	//*	Config file will override the device path if it exists
+	//*	User can also change it via the setup page
+	new TelescopeDriveriOptron(kDevCon_Serial, defaultSerialPath);
+
+	//*	Ethernet instance is only created if there's a config file for it
+	//*	This prevents unnecessary connection attempts
+	//*	Users can enable Ethernet via the setup page, which will create the config file
+
+	//*	Note: Both instances are created, but only the one that successfully connects will be active
 	//*	iOptron network ports:
 	//*		CEM60-EC: Default Port 4030
 	//*		HEM27: Default Port 8899
 	//*		Most other mounts: Port 4030
-	//*	NOTE: Change the device paths below to match your setup:
-	//*		- For USB/Serial: Use "/dev/ttyUSB0", "/dev/ttyACM0", or "/dev/ttyS0"
-	//*		  Check available devices with: ls -l /dev/ttyUSB* /dev/ttyACM*
-	//*		- For Ethernet: Use "IP_ADDRESS:PORT" format (e.g., "192.168.1.104:4030")
-	//*		  You can find the mount's IP address in the mount's hand controller settings
-	//*	USB/Serial connection via hand controller
-	new TelescopeDriveriOptron(kDevCon_Serial, "/dev/ttyUSB0");
-	//*	Ethernet connection (uncomment and update IP:PORT if using Ethernet)
-	//*	Replace "YOUR_MOUNT_IP:PORT" with your actual mount IP address and port
-	//*	Example: "192.168.1.100:4030" or "192.168.1.100:8899" (for HEM27)
-	//*	new TelescopeDriveriOptron(kDevCon_Ethernet, "YOUR_MOUNT_IP:PORT");
+	//*	Users can configure connection settings via:
+	//*		1. Setup page (accessible via Alpaca web interface) - changes take effect immediately
+	//*		2. Config files: ioptron-usb-config.txt or ioptron-ethernet-config.txt
+
 	AddSupportedDevice(kDeviceType_Telescope, "iOptron", "", "");
 }
 
@@ -139,6 +192,7 @@ TelescopeDriveriOptron::TelescopeDriveriOptron(DeviceConnectionType connectionTy
 	//*	setup the options for this driver
 	cTelescopeProp.AlginmentMode			=	kAlignmentMode_algGermanPolar;
 	cTelescopeProp.EquatorialSystem			=	kECT_equTopocentric;	//*	Topocentric coordinates (most common for amateur equatorial mounts)
+	cTelescopeProp.CanSlew					=	true;	//*	Support synchronous slewing (required for ASCOM compatibility)
 	cTelescopeProp.CanSlewAsync				=	true;
 	cTelescopeProp.CanSync					=	true;
 	cTelescopeProp.CanSetTracking			=	true;
@@ -423,6 +477,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_AbortSlew(char *alpacaErrMsg
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to abort
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	Clear command queue
 	cQueuedCmdCnt	=	0;
 	//*	iOptron abort command :Q#
@@ -438,6 +500,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_FindHome(char *alpacaErrMsg)
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to find home
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	iOptron home command :MH# (slew to zero position)
 	AddCmdToQueue(":MH#");
 	cTelescopeProp.Slewing	=	true;
@@ -454,6 +524,14 @@ TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
 	CONSOLE_DEBUG_W_DBL("moveRate_degPerSec\t=", moveRate_degPerSec);
+
+	//*	Validate connection before attempting to move axis
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 
 	switch(axisNum)
 	{
@@ -511,6 +589,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_Park(char *alpacaErrMsg)
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to park
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	iOptron park command :MP1# (park to most recently defined parking position)
 	AddCmdToQueue(":MP1#");
 	cTelescopeProp.AtPark	=	true;
@@ -525,6 +611,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_SetPark(char *alpacaErrMsg)
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to set park position
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	iOptron set park position - use current position
 	//*	Note: This requires getting current Alt/Az and setting parking position
 	//*	For now, we'll use :SZP# to set zero position as park position
@@ -556,6 +650,20 @@ TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 char					commandString[48];
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to slew
+	if (!cCommonProp.Connected)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
+	if (!cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope connection is not open");
+		return(alpacaErrCode);
+	}
 
 	//*	Set target RA - iOptron command :SRATTTTTTTTT# (9 digits, 0.01 arc-second resolution)
 	//*	RA in 0.01 arc-seconds = hours * 15 * 3600 * 100
@@ -609,6 +717,20 @@ char					commandString[48];
 
 	CONSOLE_DEBUG(__FUNCTION__);
 
+	//*	Validate connection before attempting to sync
+	if (!cCommonProp.Connected)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
+	if (!cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope connection is not open");
+		return(alpacaErrCode);
+	}
+
 	//*	Set target RA - iOptron command :SRATTTTTTTTT# (9 digits, 0.01 arc-second resolution)
 	int64_t	ra_arcsec_01	=	(int64_t)(newRtAscen_Hours * 15.0 * 3600.0 * 100.0);
 	if (ra_arcsec_01 < 0)
@@ -655,6 +777,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_TrackingOnOff(	const bool	ne
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to change tracking
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	if (newTrackingState)
 	{
 		//*	Start tracking - iOptron command :ST1#
@@ -679,6 +809,14 @@ TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 char					cmdString[16];
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to set tracking rate
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	iOptron tracking rate command :RTn#
 	//*	n = 0 (Sidereal), 1 (Lunar), 2 (Solar), 3 (King)
 	switch(newTrackingRate)
@@ -712,6 +850,14 @@ TYPE_ASCOM_STATUS	TelescopeDriveriOptron::Telescope_UnPark(char *alpacaErrMsg)
 TYPE_ASCOM_STATUS		alpacaErrCode	=	kASCOM_Err_Success;
 
 	CONSOLE_DEBUG(__FUNCTION__);
+
+	//*	Validate connection before attempting to unpark
+	if (!cCommonProp.Connected || !cTelescopeConnectionOpen)
+	{
+		alpacaErrCode	=	kASCOM_Err_NotConnected;
+		GENERATE_ALPACAPI_ERRMSG(alpacaErrMsg, "Telescope is not connected");
+		return(alpacaErrCode);
+	}
 	//*	iOptron unpark command :MP0#
 	AddCmdToQueue(":MP0#");
 	cTelescopeProp.AtPark	=	false;
@@ -1272,6 +1418,9 @@ const char	*configFile;
 	}
 	else
 	{
+		//*	No config file found - this is OK, driver will use defaults
+		//*	For Serial: uses device path from constructor
+		//*	For Ethernet: won't connect until configured via setup page
 		CONSOLE_DEBUG_W_STR("No config file found (using defaults)", configFile);
 	}
 }

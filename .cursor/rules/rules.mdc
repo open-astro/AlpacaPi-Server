@@ -50,11 +50,106 @@ alwaysApply: true
 - Global variables: `g` prefix: `gVerbose`, `gObseratorySettings`
 - Functions: PascalCase or camelCase: `FormatTimeString()`, `IsTrueFalse()`
 
-## Code Commit
-- When user asks for a commit look over all the changed file
-- create a commit for Github Desktop
-- Only execute git commands to see what files have changed
-
 ## Design
 - Focus on Alapca standards https://ascom-standards.org/api/ 3.1
 - Focus on Alpaca Server and Astro Drivers
+
+
+## Code Commit
+- When the user asks for a commit, review all changed files.
+- Create a GitHub Desktop-friendly commit message with a clear title + bullet points.
+- Only run `git status`, `git diff`, or `git log` when checking changes.
+- List exactly which files were changed and why in the commit message.
+
+## Design
+- Follow ASCOM Alpaca 3.1 specifications at: https://ascom-standards.org/api/
+- Focus on Alpaca Server, Alpaca Device Providers, and Astro Drivers.
+- Use modular architecture; avoid monolithic files.
+
+## Code Quality
+- Clean, readable, maintainable code.
+- Apply Single Responsibility Principle.
+- Prefer explicit logic; avoid magic numbers.
+- Refactor repeated patterns into helper functions.
+
+## Logic Expectations
+- Logic must be clear, linear, and predictable.
+- Show explicit data flow: input → validation → processing → output.
+- Ask clarification questions if logic requirements are unclear.
+
+## Comments & Documentation
+- Comment intent, not obvious behavior.
+- Every function must document purpose, parameters, return values, and side effects.
+- Document hardware quirks, protocol behavior, and reverse-engineered packet fields.
+
+## Error Handling
+- Never swallow exceptions; always log errors.
+- Fail to a safe hardware state when possible.
+- Provide context-rich error logs.
+
+## Logging
+- Use structured logs with timestamp + severity.
+- Include device identifiers in logs.
+- Log hardware I/O during DEBUG mode.
+
+## Security
+- Do not hardcode secrets.
+- Avoid remote-code execution functions.
+- Default network servers to localhost unless specified.
+
+## Cross-Platform Support
+- Support macOS ARM64, Ubuntu 24.04 AMD64, Ubuntu 24.04 ARM64 (RPi), and Windows clients.
+- Avoid OS-specific paths; use pathlib.
+- Scripts should be POSIX compliant unless Bash is required.
+
+## Bash Script Standards
+- Begin scripts with: `set -Eeuo pipefail`
+- Scripts must be idempotent.
+- Validate root/sudo requirement early.
+- Use lowercase snake_case for variables.
+
+## Python Standards
+- Use type hints.
+- Full docstrings.
+- Prefer dataclasses.
+- Follow Black formatting.
+
+## C/C++ Standards
+- Use `#pragma once` in all headers.
+- CamelCase for functions; snake_case for variables.
+- Check all hardware/SDK return values.
+- Document protocol structures and timing.
+
+## RPi Image & Install Scripts
+- Must support ARMv7 and ARM64.
+- Detect hardware to switch between WiringPi and libgpiod.
+- Scripts must not break OTA/system updates.
+- Log to /var/log/OpenAstro/.
+
+## Alpaca Behavior
+- Strictly follow ASCOM Alpaca property names and JSON response formats.
+- Validate all incoming commands.
+- Atomic state changes for device properties.
+- Maintain correct busy/idle state reporting.
+
+## Hardware Integration
+- Observe required timing (cooling, exposures, slews, microsteps).
+- USB/HID communication must retry with backoff.
+- Document meaning of all protocol bytes.
+
+## File Structure
+- Organize files into logical folders:
+  - /drivers/
+  - /server/
+  - /scripts/
+  - /config/
+  - /docs/
+- Avoid overly large files.
+
+## Behavior for Cursor
+- Explain reasoning for code decisions.
+- Ask questions when requirements are unclear.
+- Produce diff-style patches when modifying files.
+- Never invent APIs; confirm when unsure.
+- Preserve all licensing notices.
+

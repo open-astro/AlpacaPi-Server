@@ -245,7 +245,7 @@ char		*eolPtr;
 char		*spcPtr;
 int			returnCode;
 struct stat	fileStatus;
-char		usbQuerryName[]	=	"usbquerry.sh";
+char		usbQuerryName[]	=	"scripts/usbquerry.sh";
 char		usbIDfileName[]	=	"usb_id.txt";
 
 //	CONSOLE_DEBUG(__FUNCTION__);

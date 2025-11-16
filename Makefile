@@ -84,9 +84,9 @@
 ###########################################
 #	lets try to determine platform
 MACHINE_TYPE		=	$(shell uname -m)
-PLATFORM			=	$(shell ./make_checkplatform.sh)
-OPENCV_VERSION		=	$(shell ./make_checkopencv.sh)
-SQL_VERSION			=	$(shell ./make_checksql.sh)
+PLATFORM			=	$(shell ./scripts/make_checkplatform.sh)
+OPENCV_VERSION		=	$(shell ./scripts/make_checkopencv.sh)
+SQL_VERSION			=	$(shell ./scripts/make_checksql.sh)
 
 ###########################################
 # default settings for Desktop Linux build
@@ -677,6 +677,7 @@ alpacapi		:									\
 					$(ASI_CAMERA_OBJECTS)			\
 					$(OPENCV_LINK)					\
 					-L$(ZWO_EAF_LIB_DIR)			\
+					-Wl,-rpath,$(ZWO_EAF_LIB_DIR)	\
 					$(ZWO_EFW_OBJECTS)				\
 					-lEAFFocuser					\
 					-ludev							\
@@ -2318,6 +2319,5 @@ $(OBJECT_DIR)imu_lib_bno055.o : 		$(SRC_IMU)imu_lib_bno055.c	\
 $(OBJECT_DIR)i2c_bno055.o : 			$(SRC_IMU)i2c_bno055.c	\
 										$(SRC_IMU)getbno055.h
 	$(COMPILE) $(INCLUDES) $(SRC_IMU)i2c_bno055.c -o$(OBJECT_DIR)i2c_bno055.o
-
 
 

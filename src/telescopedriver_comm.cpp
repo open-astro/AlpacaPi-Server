@@ -110,7 +110,16 @@ char	*colonPtr;
 			CONSOLE_DEBUG_W_STR("cDeviceIPaddress\t=",	cDeviceIPaddress);
 			CONSOLE_DEBUG_W_NUM("cTCPportNum\t=",	cTCPportNum);
 
-			cIPaddrValid			=	true;
+			//*	Only mark as valid if IP is not 0.0.0.0 (placeholder)
+			if (strcmp(cDeviceIPaddress, "0.0.0.0") != 0)
+			{
+				cIPaddrValid	=	true;
+			}
+			else
+			{
+				cIPaddrValid	=	false;
+				CONSOLE_DEBUG("Ethernet IP not configured - use setup page to configure");
+			}
 		}
 	}
 
@@ -140,7 +149,8 @@ int32_t	TelescopeDriverComm::RunStateMachine(void)
 {
 //	CONSOLE_DEBUG(__FUNCTION__);
 
-	if (cDriverThreadIsActive)
+	//*	Connection is only valid if both the thread is active AND the physical connection is open
+	if (cDriverThreadIsActive && cTelescopeConnectionOpen)
 	{
 		if (cCommonProp.Connected == false)
 		{
@@ -334,26 +344,27 @@ char				linuxErrorStr[256];
 		{
 			CONSOLE_DEBUG("Open successful");
 		}
-		else if (errno == ECONNREFUSED)
-		{
-			inet_ntop(AF_INET, &deviceAddress->sin_addr.s_addr, ipString, INET_ADDRSTRLEN);
-			sprintf(cTelescopeErrorString, "Connection refused - %s", ipString);
-			CONSOLE_DEBUG(cTelescopeErrorString);
-
-//+			gTelescopeThreadKeepRunning	=	false;
-			cNewTelescopeDataAvailble	=	true;
-		}
 		else
 		{
+			//*	Connection failed - close socket and return error
 			inet_ntop(AF_INET, &deviceAddress->sin_addr.s_addr, ipString, INET_ADDRSTRLEN);
-
-			sprintf(cTelescopeErrorString, "Connection error, ipaddress = %s", ipString);
-			CONSOLE_DEBUG(cTelescopeErrorString);
-			CONSOLE_DEBUG_W_NUM("errno\t\t\t=", errno);
-			GetLinuxErrorString(errno, linuxErrorStr);
-			CONSOLE_DEBUG(linuxErrorStr);
-//+			gTelescopeThreadKeepRunning	=	false;
+			if (errno == ECONNREFUSED)
+			{
+				sprintf(cTelescopeErrorString, "Connection refused - %s", ipString);
+				CONSOLE_DEBUG(cTelescopeErrorString);
+			}
+			else
+			{
+				sprintf(cTelescopeErrorString, "Connection error, ipaddress = %s", ipString);
+				CONSOLE_DEBUG(cTelescopeErrorString);
+				CONSOLE_DEBUG_W_NUM("errno\t\t\t=", errno);
+				GetLinuxErrorString(errno, linuxErrorStr);
+				CONSOLE_DEBUG(linuxErrorStr);
+			}
 			cNewTelescopeDataAvailble	=	true;
+			//*	Close the socket since connection failed
+			close(socket_desc);
+			socket_desc	=	-1;
 		}
 	}
 	else
