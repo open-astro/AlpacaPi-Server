@@ -56,7 +56,7 @@
 
 #include	"socket_listen.h"
 
-#define		kTimeOut_MicroSecs	2500
+#define		kTimeOut_MicroSecs	500000		//*	Allow 0.5 seconds so POST bodies arrive before timeout
 
 SocketData_Callback			gSocketCallbackProcPtr		=	NULL;
 

@@ -29,6 +29,7 @@ enum
 	kCmd_Camera_camerastate,			//*	Returns the camera operational state.
 	kCmd_Camera_cameraxsize,			//*	Returns the width of the CCD camera chip.
 	kCmd_Camera_cameraysize,			//*	Returns the height of the CCD camera chip.
+	kCmd_Camera_bitdepth,				//*	Returns the native camera bit depth.
 	kCmd_Camera_canabortexposure,		//*	Indicates whether the camera can abort exposures.
 	kCmd_Camera_canasymmetricbin,		//*	Indicates whether the camera supports asymmetric binning
 	kCmd_Camera_canfastreadout,			//*	Indicates whether the camera has a fast readout mode.

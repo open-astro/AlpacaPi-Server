@@ -3692,8 +3692,13 @@ int				contentDataLen;
 		{
 			reqData->get_putIndicator	=	'G';
 		}
-		else 	if (strncasecmp(htmlData, "PUT", 3) == 0)
+		else if (strncasecmp(htmlData, "PUT", 3) == 0)
 		{
+			reqData->get_putIndicator	=	'P';
+		}
+		else if (strncasecmp(htmlData, "POST", 4) == 0)
+		{
+			//*	Treat POST the same as PUT so non-compliant clients still work
 			reqData->get_putIndicator	=	'P';
 		}
 		else
@@ -3890,6 +3895,19 @@ int				contentDataLen;
 			}
 			iii++;
 		}
+		if ((isContent) && (ccc > 0))
+		{
+			lineBuff[ccc]	=	0;
+			contentDataLen	=	strlen(reqData->contentData);
+			if (contentDataLen + strlen(lineBuff) < (kContentDataLen - 2))
+			{
+				strcat(reqData->contentData, lineBuff);
+			}
+			else
+			{
+				CONSOLE_DEBUG_W_STR("contentData overflow:", lineBuff);
+			}
+		}
 		if (reqData->get_putIndicator == 'G')
 		{
 			//*	the get data is in a different location
@@ -4014,6 +4032,7 @@ static int	ParseAlpacaRequest(TYPE_GetPutRequestData *reqData)
 TYPE_REQUEST_TYPE	requestType;
 int					iii;
 int					ccc;
+int					cmdStartIdx;
 bool				foundKeyWord;
 int					slashCounter;
 char				sLen;
@@ -4034,8 +4053,17 @@ char				*delimPtr;
 
 	//*	copy the full command over
 	ccc		=	0;
-	iii		=	4;
 	sLen	=	strlen(reqData->httpCmdString);
+	cmdStartIdx	=	0;
+	while ((cmdStartIdx < sLen) && (reqData->httpCmdString[cmdStartIdx] > 0x20))
+	{
+		cmdStartIdx++;
+	}
+	while ((cmdStartIdx < sLen) && (reqData->httpCmdString[cmdStartIdx] <= 0x20))
+	{
+		cmdStartIdx++;
+	}
+	iii		=	cmdStartIdx;
 	while ((reqData->httpCmdString[iii] > 0x20) && (iii< sLen) && (ccc < (kMaxCommandLen - 1)))
 	{
 		reqData->cmdBuffer[ccc++]	=	reqData->httpCmdString[iii++];
@@ -4045,7 +4073,7 @@ char				*delimPtr;
 
 	slashCounter		=	0;
 	ccc					=	0;
-	iii					=	4;	//*	start after "GET " so that we can ignore the first space
+	iii					=	cmdStartIdx;	//*	start after "GET/PUT/POST " so that we can ignore the first space
 	argumentString[0]	=	0;
 	theChar				=	0;
 	while ((slashCounter < 6) && (iii < sLen) && (theChar != 0x20))
@@ -4453,35 +4481,6 @@ int	iii;
 }
 
 //*****************************************************************************
-static void	ProcessPostCommand(const int socket)
-{
-char	postResponse[2048];
-int		bytesWritten;
-
-	CONSOLE_DEBUG(__FUNCTION__);
-
-	strcpy(postResponse,	"HTTP/1.1 200 OK\r\n");
-	strcat(postResponse,	"Date: Tue, 06 Sep 2022 00:34:52 GMT\r\n");
-	strcat(postResponse,	"/Server: Apache/2.4.41 (Ubuntu)\r\n");
-	strcat(postResponse,	"Content-Type: text/plain\r\n");
-	strcat(postResponse,	"X-Frame-Options: DENY\r\n");
-	strcat(postResponse,	"Vary: Cookie,Accept-Encoding\r\n");
-//	strcat(postResponse,	"Content-Length: 126\r\n");
-	strcat(postResponse,	"X-Content-Type-Options: nosniff\r\n");
-	strcat(postResponse,	"Referrer-Policy: same-origin\r\n");
-	strcat(postResponse,	"Cross-Origin-Opener-Policy: same-origin\r\n");
-//	strcat(postResponse,	"Set-Cookie: csrftoken=T7AkBsNUMW0a6FjxDw2bDtMBFlExEWfXO7VXrawwSX6F704cS2zPOst8QHT7LtWh; expires=Tue, 05 Sep 2023 00:34:52 GMT; Max-Age=31449600; Path=/; SameSite=Lax
-	strcat(postResponse,	"Connection: close\r\n");
-
-	strcat(postResponse,	"{\"status\": \"success\", \"message\": \"authenticated user: xyzzy@gmail.com\", \"session\": \"i56kn2jy8gdn1lgq865e2fdo9uht2eak\"}\r\n");
-
-	CONSOLE_DEBUG_W_STR("Sending data:", postResponse);
-
-	bytesWritten	=	SocketWriteData(socket,	postResponse);
-	CONSOLE_DEBUG_W_NUM("bytesWritten\t=",	bytesWritten);
-}
-
-//*****************************************************************************
 static void	ProcessOptionsCommand(const int socket)
 {
 char	optionsResponse[2048];
@@ -4525,15 +4524,12 @@ CONSOLE_DEBUG_W_STR("\r\n", htmlData);
 //	CONSOLE_DEBUG("Timing Start----------------------");
 //	SETUP_TIMING();
 
-	if ((strncmp(htmlData, "GET", 3) == 0) || (strncmp(htmlData, "PUT", 3) == 0))
+	if ((strncmp(htmlData, "GET", 3) == 0) ||
+		(strncmp(htmlData, "PUT", 3) == 0) ||
+		(strncmp(htmlData, "POST", 4) == 0))
 	{
 //		CONSOLE_DEBUG("Calling ProcessGetPutRequest");
 		returnCode	=	ProcessGetPutRequest(socket, htmlData, byteCount, ipAddressString);
-		gServerTransactionID++;	//*	we are the "server"
-	}
-	else if (strncmp(htmlData, "POST", 4) == 0)
-	{
-		ProcessPostCommand(socket);
 		gServerTransactionID++;	//*	we are the "server"
 	}
 	else if (strncmp(htmlData, "OPTIONS", 7) == 0)

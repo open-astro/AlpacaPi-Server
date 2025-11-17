@@ -965,11 +965,21 @@ char				httpHeader[500];
 
 		case kCmd_Camera_cameraysize:			//*	Returns the height of the CCD camera chip.
 			cBytesWrittenForThisCmd	+=	JsonResponse_Add_Int32(	mySocket,
-											reqData->jsonTextBuffer,
-											kMaxJsonBuffLen,
-											gValueString,
-											cCameraProp.CameraYsize,
-											INCLUDE_COMMA);
+									reqData->jsonTextBuffer,
+									kMaxJsonBuffLen,
+									gValueString,
+									cCameraProp.CameraYsize,
+									INCLUDE_COMMA);
+			alpacaErrCode	=	kASCOM_Err_Success;
+			break;
+
+		case kCmd_Camera_bitdepth:				//*	Returns the native bit depth of the camera
+			cBytesWrittenForThisCmd	+=	JsonResponse_Add_Int32(	mySocket,
+									reqData->jsonTextBuffer,
+									kMaxJsonBuffLen,
+									gValueString,
+									cBitDepth,
+									INCLUDE_COMMA);
 			alpacaErrCode	=	kASCOM_Err_Success;
 			break;
 

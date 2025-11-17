@@ -24,6 +24,7 @@ TYPE_CmdEntry	gCameraCmdTable[]	=
 	{	"camerastate",				kCmd_Camera_camerastate,			kCmdType_GET	},
 	{	"cameraxsize",				kCmd_Camera_cameraxsize,			kCmdType_GET	},
 	{	"cameraysize",				kCmd_Camera_cameraysize,			kCmdType_GET	},
+	{	"bitdepth",					kCmd_Camera_bitdepth,				kCmdType_GET	},
 	{	"canabortexposure",			kCmd_Camera_canabortexposure,		kCmdType_GET	},
 	{	"canasymmetricbin",			kCmd_Camera_canasymmetricbin,		kCmdType_GET	},
 	{	"canfastreadout",			kCmd_Camera_canfastreadout,			kCmdType_GET	},
